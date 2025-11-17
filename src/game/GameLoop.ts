@@ -27,7 +27,7 @@ export class GameLoop {
 
   private initializeGame() {
     const snakes: Snake[] = [];
-    const colors = ['#dc2626', '#2563eb', '#059669', '#d97706', '#7c3aed', '#db2777'];
+    const colors = ['#b91c1c', '#1d4ed8', '#047857', '#b45309', '#6d28d9', '#be185d'];
     
     // Create player snake
     const playerSnake: Snake = {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameState, Position, Snake, Food } from '../types/game';
 import { getSkinById } from '../types/skins';
 import { useBoardSwipeControls } from '../hooks/useBoardSwipeControls';
@@ -13,6 +13,20 @@ interface GameBoardProps {
 const GameBoard: React.FC<GameBoardProps> = ({ gameState, onDirectionChange, isSwipeEnabled = true }) => {
   const { snakes, foods, gameConfig } = gameState;
   const { boardWidth, boardHeight } = gameConfig;
+  const [cellSize, setCellSize] = useState(14);
+
+  useEffect(() => {
+    const updateSize = () => {
+      const maxWidth = Math.min(window.innerWidth - 100, boardWidth * 14);
+      const maxHeight = Math.min(window.innerHeight - 300, boardHeight * 14);
+      const size = Math.min(maxWidth / boardWidth, maxHeight / boardHeight);
+      setCellSize(Math.max(8, Math.min(size, 16)));
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [boardWidth, boardHeight]);
 
   // 集成棋盘滑动控制
   const { isSwiping, onTouchStart, onTouchEnd } = useBoardSwipeControls({
@@ -39,9 +53,12 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onDirectionChange, isS
     const snake = getSnakeAtPosition(x, y);
     const food = getFoodAtPosition(x, y);
 
-    let cellClass = 'w-4 h-4';
+    let cellStyle: React.CSSProperties = {
+      width: `${cellSize}px`,
+      height: `${cellSize}px`
+    };
     let cellContent: React.ReactNode = '';
-    let backgroundColor = 'bg-gray-100';
+    let backgroundColor = '#111827'; // gray-900
 
     if (snake) {
       const isHead = snake.body[0].x === x && snake.body[0].y === y;
@@ -51,10 +68,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onDirectionChange, isS
         if (skin) {
           // Use skin for head
           backgroundColor = '';
-          cellClass += ' rounded-full shadow-md';
           cellContent = (
             <div 
-              className="w-full h-full flex items-center justify-center text-xs font-bold drop-shadow-lg rounded-full"
+              className="w-full h-full flex items-center justify-center text-xs font-bold drop-shadow-lg rounded-full shadow-md"
               style={{ 
                 backgroundColor: skin.head.backgroundColor,
                 borderColor: skin.head.borderColor || '#ffffff'
@@ -66,9 +82,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onDirectionChange, isS
         } else {
           // Fallback to original rendering
           backgroundColor = snake.color;
-          cellClass += ' rounded-full shadow-md';
           cellContent = (
-            <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold drop-shadow-lg">
+            <div className="w-full h-full flex items-center justify-center text-white text-xs font-bold drop-shadow-lg rounded-full shadow-md">
               {snake.id === 'player' ? '👤' : '🤖'}
             </div>
           );
@@ -77,7 +92,6 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onDirectionChange, isS
         if (skin) {
           // Use skin for body
           backgroundColor = '';
-          cellClass += ' rounded-sm';
           cellContent = (
             <div 
               className={`w-full h-full rounded-sm ${
@@ -93,15 +107,13 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onDirectionChange, isS
         } else {
           // Fallback to original rendering
           backgroundColor = snake.color;
-          cellClass += ' rounded-sm opacity-90';
           cellContent = '';
         }
       }
     } else if (food) {
-      backgroundColor = food.type === 'special' ? 'bg-yellow-400' : 'bg-red-500';
-      cellClass += ' rounded-full shadow-sm';
+      backgroundColor = food.type === 'special' ? '#fbbf24' : '#ef4444';
       cellContent = (
-        <div className="w-full h-full flex items-center justify-center text-sm font-bold drop-shadow-md">
+        <div className="w-full h-full flex items-center justify-center text-sm font-bold drop-shadow-md rounded-full shadow-sm">
           {food.type === 'special' ? '⭐' : '🍎'}
         </div>
       );
@@ -110,7 +122,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onDirectionChange, isS
     return (
       <div
         key={`${x}-${y}`}
-        className={`${cellClass} ${backgroundColor}`}
+        className="flex items-center justify-center"
+        style={{...cellStyle, backgroundColor: snake ? 'transparent' : backgroundColor}}
       >
         {cellContent}
       </div>
@@ -118,14 +131,14 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onDirectionChange, isS
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-lg select-none">
+    <div className="bg-black bg-opacity-50 backdrop-blur-sm rounded-xl p-4 shadow-2xl select-none border border-gray-600">
       <div 
         className="grid gap-0 mx-auto cursor-pointer select-none"
         style={{
           gridTemplateColumns: `repeat(${boardWidth}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${boardHeight}, minmax(0, 1fr))`,
-          width: `${boardWidth * 16}px`,
-          height: `${boardHeight * 16}px`
+          width: `${Math.min(boardWidth * cellSize, window.innerWidth - 100)}px`,
+          height: `${Math.min(boardHeight * cellSize, window.innerHeight - 300)}px`
         }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}

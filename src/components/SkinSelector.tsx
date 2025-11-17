@@ -5,9 +5,10 @@ interface SkinSelectorProps {
   currentSkinId?: string;
   onSkinSelect: (skinId: string) => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
-const SkinSelector: React.FC<SkinSelectorProps> = ({ currentSkinId, onSkinSelect, disabled = false }) => {
+const SkinSelector: React.FC<SkinSelectorProps> = ({ currentSkinId, onSkinSelect, disabled = false, compact = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const currentSkin = currentSkinId ? getSkinById(currentSkinId) : DEFAULT_SKINS[0];
 
@@ -37,6 +38,27 @@ const SkinSelector: React.FC<SkinSelectorProps> = ({ currentSkinId, onSkinSelect
       case 'legendary': return '传说';
     }
   };
+
+  if (compact) {
+    return (
+      <div className="relative">
+        <select
+          value={currentSkinId}
+          onChange={(e) => onSkinSelect(e.target.value)}
+          disabled={disabled}
+          className={`w-full px-3 py-2 rounded-lg border-2 bg-black bg-opacity-50 text-white text-sm transition-all duration-200 ${
+            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black hover:bg-opacity-70 cursor-pointer'
+          }`}
+        >
+          {DEFAULT_SKINS.map((skin) => (
+            <option key={skin.id} value={skin.id} className="bg-gray-800 text-white">
+              {skin.head.emoji} {skin.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">

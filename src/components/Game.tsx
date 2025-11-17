@@ -2,15 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GameState, Direction, GameConfig } from '../types/game';
 import { GameLoop } from '../game/GameLoop';
 import GameBoard from './GameBoard';
-import GameControls from './GameControls';
 import ScoreBoard from './ScoreBoard';
-import GameConfigComponent from './GameConfig';
-import GameStats from './GameStats';
 import SkinSelector from './SkinSelector';
+import GameContainer from './GameContainer';
 
 const defaultConfig: GameConfig = {
-  boardWidth: 30,
-  boardHeight: 30,
+  boardWidth: 25,
+  boardHeight: 25,
   playerCount: 1,
   aiCount: 3,
   gameSpeed: 200,
@@ -22,6 +20,7 @@ const Game: React.FC = () => {
   const [gameLoop, setGameLoop] = useState<GameLoop | null>(null);
   const [gameConfig, setGameConfig] = useState<GameConfig>(defaultConfig);
   const [playerSkinId, setPlayerSkinId] = useState<string>('classic');
+  const [showStartScreen, setShowStartScreen] = useState(true);
 
   // Initialize game
   useEffect(() => {
@@ -78,6 +77,7 @@ const Game: React.FC = () => {
   const handleStart = useCallback(() => {
     if (gameLoop) {
       gameLoop.startGame();
+      setShowStartScreen(false);
     }
   }, [gameLoop]);
 
@@ -96,6 +96,7 @@ const Game: React.FC = () => {
   const handleReset = useCallback(() => {
     if (gameLoop) {
       gameLoop.resetGame();
+      setShowStartScreen(true);
     }
   }, [gameLoop]);
 
@@ -104,10 +105,6 @@ const Game: React.FC = () => {
       gameLoop.changePlayerDirection(direction);
     }
   }, [gameLoop]);
-
-  const handleConfigChange = useCallback((newConfig: GameConfig) => {
-    setGameConfig(newConfig);
-  }, []);
 
   const handleSkinChange = useCallback((skinId: string) => {
     setPlayerSkinId(skinId);
@@ -118,99 +115,180 @@ const Game: React.FC = () => {
 
   if (!gameState) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-xl text-gray-600">游戏加载中...</div>
-      </div>
+      <GameContainer>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-white text-xl">游戏加载中...</div>
+        </div>
+      </GameContainer>
+    );
+  }
+
+  if (showStartScreen && gameState.gameStatus === 'waiting') {
+    return (
+      <GameContainer>
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white mb-4">🐍 多人贪吃蛇大作战</h1>
+            <p className="text-gray-300 text-lg">在棋盘上滑动控制你的蛇</p>
+          </div>
+          
+          <div className="bg-black bg-opacity-50 backdrop-blur-sm rounded-xl p-6 mb-6">
+            <SkinSelector
+              currentSkinId={playerSkinId}
+              onSkinSelect={handleSkinChange}
+              disabled={false}
+              compact={true}
+            />
+          </div>
+
+          <button
+            onClick={handleStart}
+            className="px-12 py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xl font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+          >
+            🎮 开始游戏
+          </button>
+
+          <div className="mt-8 text-center text-gray-400 text-sm max-w-md">
+            <p className="mb-2">📱 手机操作：在棋盘上滑动控制方向</p>
+            <p>🎯 目标：吃掉食物，成为最后的胜者！</p>
+          </div>
+        </div>
+      </GameContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-center text-gray-800 mb-8">
-          多人贪吃蛇大作战
-        </h1>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Panel - Controls and Config */}
-          <div className="lg:col-span-1 space-y-6">
-            <GameControls
-              gameState={gameState}
-              onStart={handleStart}
-              onPause={handlePause}
-              onResume={handleResume}
-              onReset={handleReset}
-            />
+    <GameContainer>
+      {/* 游戏主界面 */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* 左侧信息面板 */}
+        <div className="lg:w-64 bg-black bg-opacity-30 backdrop-blur-sm border-r border-gray-700 p-4 space-y-4 overflow-y-auto">
+          <ScoreBoard gameState={gameState} />
+          
+          {/* 游戏状态和控制 */}
+          <div className="bg-black bg-opacity-50 rounded-lg p-4">
+            <h3 className="text-white font-bold mb-3">游戏控制</h3>
+            <div className="space-y-2">
+              {gameState.gameStatus === 'playing' && (
+                <button
+                  onClick={handlePause}
+                  className="w-full px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm transition-colors"
+                >
+                  ⏸ 暂停
+                </button>
+              )}
+              
+              {gameState.gameStatus === 'paused' && (
+                <button
+                  onClick={handleResume}
+                  className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+                >
+                  ▶ 继续
+                </button>
+              )}
+              
+              {(gameState.gameStatus === 'gameOver' || gameState.gameStatus === 'paused') && (
+                <button
+                  onClick={handleReset}
+                  className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
+                >
+                  🔄 重新开始
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 皮肤选择 */}
+          <div className="bg-black bg-opacity-50 rounded-lg p-4">
+            <h3 className="text-white font-bold mb-3">皮肤</h3>
             <SkinSelector
               currentSkinId={playerSkinId}
               onSkinSelect={handleSkinChange}
               disabled={gameState.gameStatus === 'playing'}
+              compact={true}
             />
-            <GameConfigComponent
-              currentConfig={gameConfig}
-              onConfigChange={handleConfigChange}
-            />
-            <GameStats gameState={gameState} />
           </div>
 
-          {/* Center - Game Board */}
-          <div className="lg:col-span-2">
-            <div className="flex justify-center">
-              <GameBoard 
-                gameState={gameState} 
-                onDirectionChange={handleDirectionChange}
-                isSwipeEnabled={gameState.gameStatus === 'playing'}
-              />
-            </div>
-          </div>
-
-          {/* Right Panel - Score Board */}
-          <div className="lg:col-span-1">
-            <ScoreBoard gameState={gameState} />
-          </div>
-        </div>
-
-        {/* Mobile Instructions */}
-        <div className="mt-6 lg:hidden">
-          <div className="bg-white p-4 rounded-lg shadow-lg text-center">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">📱 手机操作</h3>
-            <p className="text-sm text-gray-600">
-              直接在棋盘上滑动即可控制蛇的移动方向
-            </p>
-            <div className="mt-3 flex justify-center space-x-4 text-xs text-gray-500">
-              <span>👆 向上滑动：向上</span>
-              <span>👇 向下滑动：向下</span>
-              <span>👈 向左滑动：向左</span>
-              <span>👉 向右滑动：向右</span>
+          {/* 操作提示 */}
+          <div className="bg-black bg-opacity-50 rounded-lg p-4">
+            <h3 className="text-white font-bold mb-2">操作提示</h3>
+            <div className="text-xs text-gray-300 space-y-1">
+              <p>📱 滑动控制方向</p>
+              <p>⌨️ 方向键控制</p>
+              <p>空格键暂停/继续</p>
             </div>
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="mt-8 bg-white p-4 rounded-lg shadow-lg">
-          <h3 className="text-lg font-bold text-gray-800 mb-2">游戏说明</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-            <div>
-              <h4 className="font-semibold mb-1">操作方式：</h4>
-              <ul className="list-disc list-inside space-y-1">
-                <li>方向键：控制蛇的移动方向</li>
-                <li>空格键：暂停/继续游戏</li>
-                <li>手机端：直接在棋盘上滑动控制</li>
-              </ul>
+        {/* 中间游戏区域 */}
+        <div className="flex-1 flex flex-col items-center justify-center p-4">
+          <GameBoard 
+            gameState={gameState} 
+            onDirectionChange={handleDirectionChange}
+            isSwipeEnabled={gameState.gameStatus === 'playing'}
+          />
+        </div>
+
+        {/* 右侧信息面板 */}
+        <div className="lg:w-64 bg-black bg-opacity-30 backdrop-blur-sm border-l border-gray-700 p-4 space-y-4 overflow-y-auto">
+          {/* 游戏统计 */}
+          <div className="bg-black bg-opacity-50 rounded-lg p-4">
+            <h3 className="text-white font-bold mb-3">游戏统计</h3>
+            <div className="text-sm text-gray-300 space-y-2">
+              <div className="flex justify-between">
+                <span>游戏状态:</span>
+                <span>{gameState.gameStatus}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>食物总数:</span>
+                <span>{gameState.foods.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>存活蛇数:</span>
+                <span>{gameState.snakes.filter(s => s.isAlive).length}</span>
+              </div>
             </div>
-            <div>
-              <h4 className="font-semibold mb-1">游戏规则：</h4>
-              <ul className="list-disc list-inside space-y-1">
-                <li>🍎 普通食物：+10分</li>
-                <li>⭐ 特殊食物：+20分</li>
-                <li>撞到墙壁或其他蛇会淘汰</li>
-                <li>最后存活的蛇获胜</li>
-              </ul>
+          </div>
+
+          {/* 食物图例 */}
+          <div className="bg-black bg-opacity-50 rounded-lg p-4">
+            <h3 className="text-white font-bold mb-3">食物图例</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center space-x-2">
+                <span className="text-red-500">🍎</span>
+                <span className="text-gray-300">普通食物 +10分</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-yellow-400">⭐</span>
+                <span className="text-gray-300">特殊食物 +20分</span>
+              </div>
             </div>
+          </div>
+
+          {/* 游戏状态 */}
+          <div className="bg-black bg-opacity-50 rounded-lg p-4">
+            <h3 className="text-white font-bold mb-3">游戏状态</h3>
+            <div className={`text-sm font-semibold ${
+              gameState.gameStatus === 'playing' ? 'text-green-400' :
+              gameState.gameStatus === 'paused' ? 'text-yellow-400' :
+              gameState.gameStatus === 'gameOver' ? 'text-red-400' :
+              'text-gray-400'
+            }`}>
+              {gameState.gameStatus === 'waiting' && '⏳ 等待开始'}
+              {gameState.gameStatus === 'playing' && '🎮 游戏进行中'}
+              {gameState.gameStatus === 'paused' && '⏸ 游戏暂停'}
+              {gameState.gameStatus === 'gameOver' && '🏁 游戏结束'}
+            </div>
+            
+            {gameState.gameStatus === 'gameOver' && gameState.winner && (
+              <div className="mt-2 text-sm text-green-400">
+                {gameState.winner === 'player' ? '🎉 你获胜了！' : '🤖 AI获胜！'}
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </GameContainer>
   );
 };
 
